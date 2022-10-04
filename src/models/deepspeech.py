@@ -91,9 +91,9 @@ class BatchRNN(nn.Module):
         if self.batch_norm is not None:
             x = self.batch_norm(x)
 
-        # x = nn.utils.rnn.pack_padded_sequence(x, lengths,enforce_sorted=False)
+        x = nn.utils.rnn.pack_padded_sequence(x, lengths, enforce_sorted=False)
         x, h = self.rnn(x)
-        # x, _ = nn.utils.rnn.pad_packed_sequence(x)
+        x, _ = nn.utils.rnn.pad_packed_sequence(x)
         if self.bidirectional:
             x = x.view(x.size(0), x.size(1), 2, -1).sum(2).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
         return x
@@ -175,7 +175,7 @@ class Jangnan(nn.Module):
         lengths = self.get_seq_lens(lengths)
         x = x.unsqueeze(1)
         x = x.permute(0, 1, 3, 2)
-        x, _ = self.conv(x, lengths)
+        x, lengths = self.conv(x, lengths)
 
         sizes = x.size()
         x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
@@ -187,11 +187,7 @@ class Jangnan(nn.Module):
         if not self.bidirectional:  # no need for lookahead layer in bidirectional
             x = self.lookahead(x)
 
-        # x = self.fc(x)
-        # x = x.transpose(0, 1)
-        # identity in training mode, softmax in eval mode
-        # x = self.inference_softmax(x)
-        return x
+        return x, lengths
     
     def get_seq_lens(self, input_length):
         """
@@ -207,37 +203,37 @@ class Jangnan(nn.Module):
         return seq_len.int()
 
 
-# class Lookahead(nn.Module):
-#     # Wang et al 2016 - Lookahead Convolution Layer for Unidirectional Recurrent Neural Networks
-#     # input shape - sequence, batch, feature - TxNxH
-#     # output shape - same as input
-#     def __init__(self, n_features, context):
-#         super(Lookahead, self).__init__()
-#         assert context > 0
-#         self.context = context
-#         self.n_features = n_features
-#         self.pad = (0, self.context - 1)
-#         self.conv = nn.Conv1d(
-#             self.n_features,
-#             self.n_features,
-#             kernel_size=self.context,
-#             stride=1,
-#             groups=self.n_features,
-#             padding=0,
-#             bias=False
-#         )
+class Lookahead(nn.Module):
+    # Wang et al 2016 - Lookahead Convolution Layer for Unidirectional Recurrent Neural Networks
+    # input shape - sequence, batch, feature - TxNxH
+    # output shape - same as input
+    def __init__(self, n_features, context):
+        super(Lookahead, self).__init__()
+        assert context > 0
+        self.context = context
+        self.n_features = n_features
+        self.pad = (0, self.context - 1)
+        self.conv = nn.Conv1d(
+            self.n_features,
+            self.n_features,
+            kernel_size=self.context,
+            stride=1,
+            groups=self.n_features,
+            padding=0,
+            bias=False
+        )
 
-#     def forward(self, x):
-#         x = x.transpose(0, 1).transpose(1, 2)
-#         x = F.pad(x, pad=self.pad, value=0)
-#         x = self.conv(x)
-#         x = x.transpose(1, 2).transpose(0, 1).contiguous()
-#         return x
+    def forward(self, x):
+        x = x.transpose(0, 1).transpose(1, 2)
+        x = F.pad(x, pad=self.pad, value=0)
+        x = self.conv(x)
+        x = x.transpose(1, 2).transpose(0, 1).contiguous()
+        return x
 
-#     def __repr__(self):
-#         return self.__class__.__name__ + '(' \
-#                + 'n_features=' + str(self.n_features) \
-#                + ', context=' + str(self.context) + ')'
+    def __repr__(self):
+        return self.__class__.__name__ + '(' \
+               + 'n_features=' + str(self.n_features) \
+               + ', context=' + str(self.context) + ')'
 
 
 class DeepSpeech(pl.LightningModule):
