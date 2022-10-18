@@ -119,7 +119,7 @@ class CNNGenerator(nn.Module):
         B, C, T = speech_features.shape
         W = self.frame_window
         padded_features = F.pad(speech_features, (W//2-1, W//2))
-        output_features = torch.zeros((B, T, C, W)).to(speech_features.device)
+        output_features = torch.zeros((B, T, C, W), device=speech_features.device)
 
         for seq in range(T):
             windowed_features = padded_features[:,:,seq:seq+W].unsqueeze(1)
@@ -134,7 +134,7 @@ class CNNGenerator(nn.Module):
         frame_fc_out = frame_fc_out.permute(0, 2, 1)
         padded_features = F.pad(frame_fc_out, (W//2-1, W//2))
         padded_features.permute(0, 2, 1)
-        output_features = torch.zeros((B, T, C, W)).to(frame_fc_out.device)
+        output_features = torch.zeros((B, T, C, W), device=frame_fc_out.device)
 
         for seq in range(T):
             windowed_features = padded_features[:,:,seq:seq+W].unsqueeze(1)

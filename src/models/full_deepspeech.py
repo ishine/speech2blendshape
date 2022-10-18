@@ -204,21 +204,22 @@ class DeepSpeech(nn.Module):
         self.inference_softmax = InferenceBatchSoftmax()
 
     def forward(self, x, lengths):
-        lengths = lengths.cpu().int()
-        output_lengths = self.get_seq_lens(lengths)
-        x = x.unsqueeze(1)
-        x = x.permute(0, 1, 3, 2)
-        x, _ = self.conv(x, output_lengths)
+        with torch.no_grad():
+            lengths = lengths.cpu().int()
+            output_lengths = self.get_seq_lens(lengths)
+            x = x.unsqueeze(1)
+            x = x.permute(0, 1, 3, 2)
+            x, _ = self.conv(x, output_lengths)
 
-        sizes = x.size()
-        x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
-        x = x.transpose(1, 2).transpose(0, 1).contiguous()  # TxNxH
+            sizes = x.size()
+            x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
+            x = x.transpose(1, 2).transpose(0, 1).contiguous()  # TxNxH
 
-        for rnn in self.rnns:
-            x = rnn(x, output_lengths)
+            for rnn in self.rnns:
+                x = rnn(x, output_lengths)
 
-        if not self.bidirectional:  # no need for lookahead layer in bidirectional
-            x = self.lookahead(x)
+            if not self.bidirectional:  # no need for lookahead layer in bidirectional
+                x = self.lookahead(x)
 
         x = self.fc(x)
         # x = x.transpose(0, 1)

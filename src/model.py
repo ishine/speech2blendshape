@@ -31,8 +31,7 @@ class S2BModel(pl.LightningModule):
         self.save_name = save_name
         self.save_hyperparameters()
         
-        # self.encoder = Jangnan()
-        # self.encoder.load_state_dict(torch.load('/root/mediazen/speech2blendshape/pretrained/jangnan.pt'))
+        
         self.encoder = DeepSpeech.load_model('/root/mediazen/speech2blendshape/pretrained/librispeech_pretrained_v2.pth')
         self.speech_fc = nn.Linear(29, self.num_classes)
 
@@ -45,10 +44,9 @@ class S2BModel(pl.LightningModule):
 
 
     def forward(self, x, x_length, y, y_length):
-        with torch.no_grad():
-            enc_out, x_length = self.encoder(x, x_length)
-            enc_out = enc_out.permute(1, 2, 0).contiguous()
-            speech_features = self.interpolate_features(enc_out, x_length, y_length) # B, C, T
+        enc_out, x_length = self.encoder(x, x_length)
+        enc_out = enc_out.permute(1, 2, 0).contiguous()
+        speech_features = self.interpolate_features(enc_out, x_length, y_length) # B, C, T
 
         # net_G
         pred_blendshape = self.net_G(speech_features) # B, T, num_classes
@@ -176,13 +174,13 @@ class S2BModel(pl.LightningModule):
         self.jururuk = PpujikPpujik(f'csv_out/ggeoggleggeoggle/{self.save_name}', PpujikPpujik.ssemssem)
         self.ppujikppujik = PpujikPpujik(f'csv_out/banjilbanjil/{self.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
-        x, x_length, y, y_length, indices, timecodes = batch
+        x, x_length, y, y_length, indices, timecodes, f_names = batch
         out, _ = self(x, x_length, y, y_length)
 
-        y_length, indices, timecodes, out = y_length.cpu(), indices.cpu(), timecodes.cpu(), out.cpu()
+        y_length, timecodes, out = y_length.cpu(), timecodes.cpu(), out.cpu()
 
-        self.jururuk.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
-        self.ppujikppujik.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.jururuk.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.ppujikppujik.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
 
 
     def configure_optimizers(self):
@@ -195,6 +193,119 @@ class S2BModel(pl.LightningModule):
         # }
         # return [optimizer], [scheduler]
         return [opt_g, opt_d], []
+
+
+    def interpolate_features(self, features, f_len, b_len=None, input_rate=50, output_rate=60):
+        if b_len is not None:
+            batch_size = features.shape[0]
+            num_features = features.shape[1]
+            output_features = torch.zeros((batch_size, num_features, torch.max(b_len)), device=self.device)
+            for b in range(batch_size):
+                interp = nn.functional.interpolate(
+                    features[b:b+1,:,:f_len[b]],
+                    b_len[b],
+                    mode='linear',
+                    align_corners=True
+                    )
+                output_features[b:b+1,:,:b_len[b]] = interp
+            return output_features
+        else:
+            output_len = torch.ceil(f_len / input_rate * output_rate).to(torch.int32)
+            output_features = nn.functional.interpolate(features, torch.max(output_len))
+            return output_features
+
+
+
+class GGomYangModel(pl.LightningModule):
+    def __init__(self,
+                 lr,
+                 num_classes,
+                 save_name = 'baseline'
+                 ):
+        super().__init__()
+        self.lr = lr
+        self.num_classes = num_classes
+        self.save_name = save_name
+        self.save_hyperparameters()
+
+        # self.encoder = Jangnan()
+        # self.encoder.load_state_dict(torch.load('/root/mediazen/speech2blendshape/pretrained/jangnan.pt'))
+        self.encoder = DeepSpeech.load_model('/root/mediazen/speech2blendshape/pretrained/librispeech_pretrained_v2.pth')
+        self.speech_fc = nn.Linear(29, self.num_classes)
+
+        self.net_G = CNNGenerator(frame_window=16, attention_window=8, num_classes=self.num_classes)
+        self.criterion_MSE = nn.MSELoss(reduction='sum')
+    
+    def forward(self, x, x_length, y, y_length):
+        # with torch.no_grad():
+        enc_out, x_length = self.encoder(x, x_length)
+        enc_out = enc_out.permute(1, 2, 0).contiguous()
+        speech_features = self.interpolate_features(enc_out, x_length, y_length) # B, C, T
+
+        # net_G
+        pred_blendshape = self.net_G(speech_features) # B, T, num_classes
+
+        return pred_blendshape
+
+    def masking_preds(self, out, y, y_length):
+        ones_list = [torch.ones(length, self.num_classes) for length in y_length]
+        length_mask = torch.nn.utils.rnn.pad_sequence(ones_list, batch_first=True).to(self.device)
+
+        chopped_out = out[:, :max(y_length), :]
+        chopped_y = y[:, :max(y_length), :]
+        masked_out = chopped_out * length_mask
+
+        return masked_out, chopped_y # B, T, num_classes
+
+    def training_step(self, batch, batch_idx):
+        x, x_length, y, y_length = batch
+        out = self(x, x_length, y, y_length)
+
+        masked_out, chopped_y = self.masking_preds(out, y, y_length)
+
+        sum_loss = self.criterion_MSE(masked_out, chopped_y)
+        element_num = torch.sum(y_length) * self.num_classes
+        loss = sum_loss / element_num
+        self.log("train_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+
+        return {'loss': loss}
+
+    def validation_step(self, batch, batch_idx):
+        x, x_length, y, y_length = batch
+        out = self(x, x_length, y, y_length)
+
+        masked_out, chopped_y = self.masking_preds(out, y, y_length)
+
+        sum_loss = self.criterion_MSE(masked_out, chopped_y)
+        element_num = torch.sum(y_length) * self.num_classes
+        loss = sum_loss / element_num
+        self.log("val_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+
+    def validation_epoch_end(self, outputs):
+        cur_lr = self.trainer.optimizers[0].param_groups[0]['lr']
+        self.log('lr', cur_lr)
+    
+    def test_step(self, batch, batch_idx):
+        self.jururuk = PpujikPpujik(f'csv_out/ggeoggleggeoggle/{self.save_name}', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'csv_out/banjilbanjil/{self.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+
+        x, x_length, y, y_length, indices, timecodes = batch
+        out = self(x, x_length, y, y_length)
+
+        y_length, indices, timecodes, out = y_length.cpu(), indices.cpu(), timecodes.cpu(), out.cpu()
+
+        self.jururuk.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.ppujikppujik.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
+
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        # scheduler = {
+        #     "scheduler": CosineAnnealingLR(optimizer, **{"T_0": 1, "T_mult": 2, "eta_min": 1e-07}),
+        #     "interval": "epoch",
+        # }
+        # return [optimizer], [scheduler]
+        return [optimizer]
 
 
     def interpolate_features(self, features, f_len, b_len=None, input_rate=50, output_rate=60):
@@ -216,133 +327,3 @@ class S2BModel(pl.LightningModule):
             b_len = torch.ceil(f_len / input_rate * output_rate).to(torch.int32)
             output_features = nn.functional.interpolate(features, torch.max(b_len))
             return output_features
-
-
-
-# class GGomYangModel(pl.LightningModule):
-#     def __init__(self,
-#                  lr,
-#                  fc1_dim,
-#                  fc2_dim,
-#                  num_classes,
-#                  ):
-#         super().__init__()
-#         self.fc1_dim = fc1_dim
-#         self.fc2_dim = fc2_dim
-#         self.num_classes = num_classes
-#         self.lr = lr
-#         self.save_hyperparameters()
-
-#         self.sum_criterion = nn.MSELoss(reduction='sum')
-        
-#         self.jangnan_encoder = Jangnan()
-#         self.jangnan_encoder.load_state_dict(torch.load('pretrained/jangnan.pt'))
-
-#         self.jururuk = PpujikPpujik('csv_out/ggeoggleggeoggle', PpujikPpujik.ssemssem)
-#         self.ppujikppujik = PpujikPpujik('csv_out/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
-
-#         fully_connected = nn.Sequential(
-#             nn.AdaptiveAvgPool1d(self.fc1_dim),
-#             nn.Linear(self.fc1_dim, self.fc2_dim, bias=False),
-#             nn.ReLU6(),
-#             nn.Dropout(0.2),
-#             nn.Linear(self.fc2_dim, self.num_classes, bias=False),
-#         )
-#         self.fc = nn.Sequential(
-#             fully_connected,
-#             # nn.Sigmoid()
-#             ClipModule(min_threshold=0, max_threshold=1),
-#         )
-    
-#     def forward(self, x, x_length, y, y_length):
-#         x = self.jangnan_encoder(x, x_length)
-#         x = x.permute(1, 0, 2).contiguous()
-#         x = self.interpolate_features(x, 50, 60, output_len= len(y[0]))
-#         x = self.fc(x)
-
-#         return x
-
-#     def training_step(self, batch, batch_idx):
-#         x, x_length, y, y_length = batch
-#         out = self(x, x_length, y, y_length)
-
-#         ones_list = [torch.ones(length, self.num_classes) for length in y_length]
-#         length_mask = torch.nn.utils.rnn.pad_sequence(ones_list, batch_first=True).to(self.device)
-
-#         chopped_out = out[:, :max(y_length), :]
-#         chopped_y = y[:, :max(y_length), :]
-#         masked_out = chopped_out * length_mask
-
-#         sum_loss = self.sum_criterion(masked_out, chopped_y)
-#         element_num = torch.sum(y_length) * self.num_classes
-#         loss = sum_loss / element_num
-
-#         # wandb.log({'train_step_loss': loss})
-
-#         return {'loss': loss}
-
-#     def training_epoch_end(self, outputs):
-#         avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
-
-#         wandb.log({'train_loss': avg_loss}, commit=False)
-
-#     def validation_step(self, batch, batch_idx):
-#         x, x_length, y, y_length = batch
-#         out = self(x, x_length, y, y_length)
-
-#         ones_list = [torch.ones(length, self.num_classes) for length in y_length]
-#         length_mask = torch.nn.utils.rnn.pad_sequence(ones_list, batch_first=True).to(self.device)
-
-#         chopped_out = out[:, :max(y_length), :]
-#         chopped_y = y[:, :max(y_length), :]
-#         masked_out = chopped_out * length_mask
-
-#         sum_loss = self.sum_criterion(masked_out, chopped_y)
-#         element_num = torch.sum(y_length) * self.num_classes
-#         loss = sum_loss / element_num
-#         self.log("val_loss", loss)
-#         return {'val_loss': loss}
-
-#     def validation_epoch_end(self, outputs):
-#         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-#         cur_lr = self.trainer.optimizers[0].param_groups[0]['lr']
-
-#         wandb.log({'valid_loss': avg_loss, 'lr': cur_lr})
-    
-#     def test_step(self, batch, batch_idx):
-#         x, x_length, y, y_length, indices, timecodes = batch
-#         out = self(x, x_length, y, y_length)
-
-#         y_length, indices, timecodes, out = y_length.cpu(), indices.cpu(), timecodes.cpu(), out.cpu()
-
-#         self.jururuk.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
-#         self.ppujikppujik.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
-
-
-#     def configure_optimizers(self):
-#         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
-#         # scheduler = {
-#         #     "scheduler": CosineAnnealingLR(optimizer, **{"T_0": 1, "T_mult": 2, "eta_min": 1e-07}),
-#         #     "interval": "epoch",
-#         # }
-#         # return [optimizer], [scheduler]
-#         return [optimizer]
-
-
-#     def interpolate_features(self, features, input_rate, output_rate, output_len=None):
-#         batch_size = features.shape[0]
-#         num_features = features.shape[2]
-#         input_len = features.shape[1]
-#         seq_len = input_len / float(input_rate)
-#         if output_len is None:
-#             output_len = int(seq_len * output_rate)
-#         input_timestamps = np.arange(input_len) / float(input_rate)
-#         output_timestamps = np.arange(output_len) / float(output_rate)
-#         output_features = np.zeros((batch_size, output_len, num_features))
-#         features_numpy = features.cpu().data.numpy()
-#         for batch in range(batch_size):
-#             for feat in range(num_features):
-#                 output_features[batch][:, feat] = np.interp(output_timestamps,
-#                                                     input_timestamps,
-#                                                     features_numpy[batch][:, feat])
-#         return torch.from_numpy(output_features).float().to(self.device)

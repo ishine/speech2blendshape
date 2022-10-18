@@ -8,7 +8,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 
-from src.datamodule import FaceDataModule
+from src.datasets.new_datamodule import FaceDataModule
 from src.model import S2BModel
 
 import torch.multiprocessing
@@ -16,7 +16,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 
 
 def main(args):
-    pl.seed_everything(1234)
+    pl.seed_everything(args.seed)
 
     print(args)
     
@@ -29,8 +29,7 @@ def main(args):
         settings=wandb.Settings(code_dir='./src')
     )
 
-    data_loader = FaceDataModule(os.path.join(args.data_dir, 'audio_ggongggong.pt')
-                                ,os.path.join(args.data_dir, 'shape_ggongggong.pt'), args.batch_size, args.num_workers)
+    dm = FaceDataModule(args)
     
     if args.pretrained:
         model = S2BModel.load_from_checkpoint(args.pretrained)
@@ -68,18 +67,19 @@ def main(args):
             log_every_n_steps=5,
             precision=16,
             )
-    trainer.fit(model, data_loader)
-
+    trainer.fit(model, dm)
+    trainer.test(model, dm)
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Train Ggomyang model')
+    parser.add_argument('--seed', help='Random seed', type=int, default=1234)
     parser.add_argument('--data_dir', help='Root directory to load data from', type=str, default='/shared/youngkim/mediazen/preprocessed/column16')
     parser.add_argument('--batch_size', help='Batch size of the dataloader', type=int, default=16)
     parser.add_argument('--num_workers', help='Number of workers of the dataloader', type=int, default=64)
-    parser.add_argument('--num_classes', help='The number of Blendshapes to predict', type=int)
+    parser.add_argument('--num_classes', help='The number of Blendshapes to predict', type=int, default=16)
     parser.add_argument('--epoch', help='Max epoch', type=int, default=100)
     parser.add_argument('--patience', help='Epochs to keep training before early stopping', type=int, default=15)
-    parser.add_argument('--lr', help='Learning rate', type=float, default=0.01)
+    parser.add_argument('--lr', help='Learning rate', type=float, default=0.0001)
     parser.add_argument('--gpu', help='GPU', type=int, default=0)
     parser.add_argument('--checkpoint_dir', help='directory to save checkpoint', type=str, default='ckpt')
     parser.add_argument('--name', help='Name of experiment', type=str, default='s2b')

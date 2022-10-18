@@ -3,6 +3,9 @@ csv_out/
 lightning_logs/
 pretrained/
 wandb/
+*.mov
+*.wav
+K-wav2vec/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

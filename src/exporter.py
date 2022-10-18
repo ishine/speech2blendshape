@@ -1,4 +1,3 @@
-
 import os, multiprocessing, functools
 
 import pandas as pd
@@ -32,7 +31,7 @@ class PpujikPpujik:
             os.makedirs(self.target_dir)
 
 
-    def save_to_csv(self, length, index, timecode, column, prediction):
+    def save_to_csv(self, length, f_name, timecode, column, prediction):
         recovered_timecode =  [f'{(s := str(time.item()))[:-9]}:{s[-9:-7]}:{s[-7:-5]}:{s[-5:-3]}.{s[-3:]}' for time in timecode]
         timecode_index = pd.Index(recovered_timecode, name='Timecode')
 
@@ -44,11 +43,11 @@ class PpujikPpujik:
 
         df = pd.DataFrame(recovered_content, index=timecode_index, columns=recovered_column)
         chopped_df = df[:length.item()]
-        chopped_df.to_csv(os.path.join(self.target_dir, f'{index}_prediction.csv'))
+        chopped_df.to_csv(os.path.join(self.target_dir, f'{f_name}_prediction.csv'))
 
 
-    def batch_save_to_csvs(self, lengths, indices, timecodes, columns, predictions, threads=128):
-        packed_data = zip(lengths, indices, timecodes, [columns]*len(indices), predictions)
+    def batch_save_to_csvs(self, lengths, f_names, timecodes, columns, predictions, threads=128):
+        packed_data = zip(lengths, f_names, timecodes, [columns]*len(f_names), predictions)
         # for packed_datum in packed_data:
         #     self.save_to_csv(*packed_datum)
         with multiprocessing.Pool(processes=threads) as pool:
