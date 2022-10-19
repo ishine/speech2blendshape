@@ -1,0 +1,24 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - datamodule: libri.yaml
+  - model: advance.yaml
+  - path: cricket.yaml
+  - trainer: default.yaml
+
+name: 'first_try'
+device: 'cuda:0'
+seed: 42
+
+DEBUG: False
+
+# learning
+resume: False
+epoch: 100
+es_patience: 0 # if es_patient == 0, do not early stop.
+mixed_precision: True
+
+# set in run codes
+dt_string: None
+len_train_loader: None
