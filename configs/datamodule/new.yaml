@@ -1,0 +1,20 @@
+batch_size: 32
+num_workers: 64
+blendshape_columns: [
+  'JawForward',
+  'JawOpen',
+  'MouthClose',
+  'MouthFunnel',
+  'MouthPucker',
+  'MouthDimpleLeft',
+  'MouthDimpleRight',
+  'MouthStretchLeft',
+  'MouthStretchRight',
+  'MouthRollLower',
+  'MouthRollUpper',
+  'MouthShrugLower',
+  'MouthShrugUpper',
+  'MouthPressLeft',
+  'MouthPressRight',
+  'CheekPuff'
+]

@@ -13,30 +13,13 @@ from src.datasets.new_dataset import FaceDataset
 
 
 class FaceDataModule(pl.LightningDataModule):
-    def __init__(self, args):
+    def __init__(self, data_dir, batch_size, num_workers, seed, blendshape_columns):
         super().__init__(FaceDataModule)
-        self.data_dir = args.data_dir
-        self.batch_size = args.batch_size
-        self.num_workers = args.num_workers
-        self.seed = args.seed
-        self.blendshape_columns = [
-            'JawForward',
-            'JawOpen',
-            'MouthClose',
-            'MouthFunnel',
-            'MouthPucker',
-            'MouthDimpleLeft',
-            'MouthDimpleRight',
-            'MouthStretchLeft',
-            'MouthStretchRight',
-            'MouthRollLower',
-            'MouthRollUpper',
-            'MouthShrugLower',
-            'MouthShrugUpper',
-            'MouthPressLeft',
-            'MouthPressRight',
-            'CheekPuff'
-        ]
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.seed = seed
+        self.blendshape_columns = blendshape_columns
 
     
     def prepare_data(self):

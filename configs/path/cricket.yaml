@@ -1,0 +1,3 @@
+data_dir: /shared/air/shared/youngkim/mediazen/preprocessed/column16
+checkpoint_dir: /shared/youngkim/mediazen/ckpt
+pretrained: /shared/youngkim/mediazen/ckpt/ds_full_expand_G_resume-04:16:16:25/last.ckpt

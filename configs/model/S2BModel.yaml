@@ -1,0 +1,9 @@
+_target_: src.models.pl_model.S2BModel
+
+# params of model class __init__ function
+lr: 0.0001
+fc1_dim: 1024
+fc2_dim: 1024
+num_classes: 16
+lambda_G: 100
+save_name: ${name}

@@ -7,8 +7,8 @@ from torch.cuda.amp import autocast
 from tqdm import tqdm
 import pytorch_lightning as pl
 
-from src.datamodule import FaceDataModule
-from src.model import S2BModel
+from src.datasets.datamodule import FaceDataModule
+from speech2blendshape.src.models.pl_model import S2BModel
 
 
 def main(args):
