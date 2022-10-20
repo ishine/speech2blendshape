@@ -1,3 +1,4 @@
+
 import math
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -203,7 +204,7 @@ class DeepSpeech(nn.Module):
         )
         self.inference_softmax = InferenceBatchSoftmax()
 
-    def forward(self, x, lengths):
+    def forward(self, x, lengths, return_rnn_out=False):
         with torch.no_grad():
             lengths = lengths.cpu().int()
             output_lengths = self.get_seq_lens(lengths)
@@ -217,6 +218,9 @@ class DeepSpeech(nn.Module):
 
             for rnn in self.rnns:
                 x = rnn(x, output_lengths)
+
+            if return_rnn_out:
+                return x, output_lengths
 
             if not self.bidirectional:  # no need for lookahead layer in bidirectional
                 x = self.lookahead(x)

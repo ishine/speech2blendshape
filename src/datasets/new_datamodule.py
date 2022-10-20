@@ -131,10 +131,10 @@ class GGongGGongDataModule(pl.LightningDataModule):
         test_data = [xx for xx in self.data if xx[4].item() in test_file_indices]
 
         if stage in (None, 'fit'):
-            self.train_dataset = FaceDataset(train_data)
-            self.valid_dataset = FaceDataset(valid_data)
+            self.train_dataset = GGongGGongDataset(train_data)
+            self.valid_dataset = GGongGGongDataset(valid_data)
         if stage in (None, 'test'):
-            self.test_dataset = FaceDataset(test_data)        
+            self.test_dataset = GGongGGongDataset(test_data)        
     
 
     def train_dataloader(self):

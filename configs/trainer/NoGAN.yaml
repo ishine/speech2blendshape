@@ -1,0 +1,15 @@
+# early stopping
+es_monitor: v_loss_G_MSE
+es_patience: 5
+
+# checkpoint
+save_top_k: 1
+monitor: v_loss_G_MSE
+save_last: True
+
+# Trainer
+devices: 2
+epoch: 100
+fast_dev_run: False
+log_every_n_steps: 5
+precision: 16

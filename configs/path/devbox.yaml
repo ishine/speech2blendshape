@@ -1,5 +1,5 @@
-code_dir: /root/mediazen/speech2blendshape/src
-base_dir: /shared/air/shared/youngkim/mediazen
+code_dir: /home/youngkim21/speech2blendshape/src
+base_dir: /neovox/youngkim/mediazen
 data_dir: ${path.base_dir}/preprocessed/column16
 checkpoint_dir: ${path.base_dir}/ckpt
 pretrained: ${path.checkpoint_dir}/deepspeech_fc_finetune_expand_G_full_dataset-18:11:35:56/last.ckpt

@@ -46,7 +46,7 @@ class PpujikPpujik:
         chopped_df.to_csv(os.path.join(self.target_dir, f'{f_name}_prediction.csv'))
 
 
-    def batch_save_to_csvs(self, lengths, f_names, timecodes, columns, predictions, threads=128):
+    def batch_save_to_csvs(self, lengths, f_names, timecodes, columns, predictions, threads=32):
         packed_data = zip(lengths, f_names, timecodes, [columns]*len(f_names), predictions)
         # for packed_datum in packed_data:
         #     self.save_to_csv(*packed_datum)

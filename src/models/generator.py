@@ -15,18 +15,19 @@ class ClipModule(nn.Module):
 
 
 class FCGenerator(nn.Module):
-    def __init__(self, fc1_dim, fc2_dim):
+    def __init__(self, fc1_dim, fc2_dim, num_classes=16):
         super(FCGenerator, self).__init__()
 
         self.fc1_dim = fc1_dim
         self.fc2_dim = fc2_dim
+        self.num_classes = num_classes
 
         fully_connected = nn.Sequential(
             nn.AdaptiveAvgPool1d(self.fc1_dim),
-            nn.Linear(self.fc1_dim, self.fc2_dim, bias=False),
+            nn.Linear(self.fc1_dim, self.fc2_dim, bias=True),
             nn.ReLU6(),
             nn.Dropout(0.2),
-            nn.Linear(self.fc2_dim, 16, bias=False),
+            nn.Linear(self.fc2_dim, self.num_classes, bias=True),
         )
         self.generator = nn.Sequential(
             fully_connected,

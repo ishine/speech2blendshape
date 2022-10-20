@@ -418,7 +418,7 @@ class SimpleCNN(pl.LightningModule):
         sum_loss = self.criterion_MSE(masked_out, chopped_y)
         element_num = torch.sum(y_length) * self.hparams.num_classes
         loss = sum_loss / element_num
-        self.log("train_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log("t_loss_G", loss, prog_bar=True, on_step=True, on_epoch=True)
 
         return {'loss': loss}
 
@@ -431,23 +431,24 @@ class SimpleCNN(pl.LightningModule):
         sum_loss = self.criterion_MSE(masked_out, chopped_y)
         element_num = torch.sum(y_length) * self.hparams.num_classes
         loss = sum_loss / element_num
-        self.log("val_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log("v_loss_G_MSE", loss, prog_bar=True, on_step=True, on_epoch=True)
 
     def validation_epoch_end(self, outputs):
         cur_lr = self.trainer.optimizers[0].param_groups[0]['lr']
         self.log('lr', cur_lr)
     
     def test_step(self, batch, batch_idx):
+
         self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.hparams.save_name}', PpujikPpujik.ssemssem)
         self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.hparams.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
-        x, x_length, y, y_length, indices, timecodes = batch
-        out = self(x, x_length, y, y_length)
+        x, x_length, y, y_length, indices, timecodes, f_names = batch
+        out, _ = self(x, x_length, y, y_length)
 
-        y_length, indices, timecodes, out = y_length.cpu(), indices.cpu(), timecodes.cpu(), out.cpu()
+        y_length, timecodes, out = y_length.cpu(), timecodes.cpu(), out.cpu()
 
-        self.jururuk.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
-        self.ppujikppujik.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.jururuk.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.ppujikppujik.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
 
 
     def configure_optimizers(self):
@@ -499,9 +500,10 @@ class SimpleFC(pl.LightningModule):
     
     def forward(self, x, x_length, y, y_length):
         # with torch.no_grad():
-        enc_out, x_length = self.encoder(x, x_length)
+        enc_out, x_length = self.encoder(x, x_length, return_rnn_out=True)
         enc_out = enc_out.permute(1, 2, 0).contiguous()
         speech_features = self.interpolate_features(enc_out, x_length, y_length) # B, C, T
+        speech_features = speech_features.permute(0, 2, 1).contiguous() # B, T, C
 
         # net_G
         pred_blendshape = self.net_G(speech_features) # B, T, num_classes
@@ -527,7 +529,7 @@ class SimpleFC(pl.LightningModule):
         sum_loss = self.criterion_MSE(masked_out, chopped_y)
         element_num = torch.sum(y_length) * self.hparams.num_classes
         loss = sum_loss / element_num
-        self.log("train_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log("t_loss_G", loss, prog_bar=True, on_step=True, on_epoch=True)
 
         return {'loss': loss}
 
@@ -540,23 +542,28 @@ class SimpleFC(pl.LightningModule):
         sum_loss = self.criterion_MSE(masked_out, chopped_y)
         element_num = torch.sum(y_length) * self.hparams.num_classes
         loss = sum_loss / element_num
-        self.log("val_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log("v_loss_G_MSE", loss, prog_bar=True, on_step=True, on_epoch=True)
 
     def validation_epoch_end(self, outputs):
         cur_lr = self.trainer.optimizers[0].param_groups[0]['lr']
         self.log('lr', cur_lr)
     
     def test_step(self, batch, batch_idx):
+
         self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.hparams.save_name}', PpujikPpujik.ssemssem)
         self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.hparams.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
-        x, x_length, y, y_length, indices, timecodes = batch
+        x, x_length, y, y_length, indices, timecodes, f_names = batch
         out = self(x, x_length, y, y_length)
+        print(out.shape)
 
-        y_length, indices, timecodes, out = y_length.cpu(), indices.cpu(), timecodes.cpu(), out.cpu()
+        chopped_out = out[:, :max(y_length), :]
+        chopped_timecodes = timecodes[:, :max(y_length)]
 
-        self.jururuk.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
-        self.ppujikppujik.batch_save_to_csvs(y_length, indices, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        y_length, timecodes, out = y_length.cpu(), chopped_timecodes.cpu(), chopped_out.cpu()
+
+        self.jururuk.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.ppujikppujik.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
 
 
     def configure_optimizers(self):
