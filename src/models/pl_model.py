@@ -15,9 +15,7 @@ from src.models.full_deepspeech import DeepSpeech
 
 class S2BModel(pl.LightningModule):
     def __init__(self,
-                 csv_out_dir,
                  lr,
-                 deepspeech_model_path,
                  fc1_dim,
                  fc2_dim,
                  num_classes,
@@ -34,7 +32,7 @@ class S2BModel(pl.LightningModule):
         self.save_hyperparameters()
         
         
-        self.encoder = DeepSpeech.load_model(deepspeech_model_path)
+        self.encoder = DeepSpeech.load_model('/shared/air/shared/youngkim/mediazen/pretrained/librispeech_pretrained_v2.pth')
         self.speech_fc = nn.Linear(29, self.num_classes)
 
         # self.net_G = FCGenerator(fc1_dim, fc2_dim)
@@ -160,8 +158,8 @@ class S2BModel(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
 
-        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.save_name}', PpujikPpujik.ssemssem)
-        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+        self.jururuk = PpujikPpujik(f'/shared/air/shared/youngkim/mediazen/csv_out/ggeoggleggeoggle/{self.save_name}', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'/shared/air/shared/youngkim/mediazen/csv_out/banjilbanjil/{self.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out, _ = self(x, x_length, y, y_length)

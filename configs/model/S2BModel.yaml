@@ -2,7 +2,6 @@ _target_: src.models.pl_model.S2BModel
 
 # params of model class __init__ function
 lr: 0.0001
-deepspeech_model_path: ${path.deepspeech}
 fc1_dim: 1024
 fc2_dim: 1024
 num_classes: 16
