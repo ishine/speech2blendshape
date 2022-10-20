@@ -2,7 +2,7 @@
 
 defaults:
   - _self_
-  - datamodule: new.yaml
+  - datamodule: essentials.yaml
   - model: S2BModel.yaml
   - path: cricket.yaml
   - trainer: default.yaml

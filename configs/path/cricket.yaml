@@ -1,3 +1,5 @@
-data_dir: /shared/air/shared/youngkim/mediazen/preprocessed/column16
-checkpoint_dir: /shared/youngkim/mediazen/ckpt
-pretrained: /shared/youngkim/mediazen/ckpt/ds_full_expand_G_resume-04:16:16:25/last.ckpt
+code_dir: /root/mediazen/speech2blendshape/src
+base_dir: /shared/air/shared/youngkim/mediazen
+data_dir: ${path.base_dir}/preprocessed/column16
+checkpoint_dir: ${path.base_dir}/ckpt
+pretrained: ${path.checkpoint_dir}/deepspeech_fc_finetune_expand_G_full_dataset-18:11:35:56/last.ckpt

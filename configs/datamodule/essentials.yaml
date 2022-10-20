@@ -1,5 +1,9 @@
+_target_: src.datasets.new_datamodule.FaceDataModule
+
+data_dir: ${path.data_dir}
 batch_size: 32
 num_workers: 64
+seed: ${seed}
 blendshape_columns: [
   'JawForward',
   'JawOpen',

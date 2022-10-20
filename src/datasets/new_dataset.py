@@ -52,3 +52,17 @@ class FaceDataset(torch.utils.data.Dataset):
             ret.append([x['f_name'] for x in batch])
 
         return ret
+
+
+class GGongGGongDataset(torch.utils.data.Dataset):
+    def __init__(self, data):
+        self.data = data
+        self.len = len(self.data)
+
+    
+    def __len__(self):
+        return self.len
+
+
+    def __getitem__(self, idx):
+        return self.data[idx]

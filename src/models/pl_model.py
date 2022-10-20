@@ -129,13 +129,6 @@ class S2BModel(pl.LightningModule):
             self.log('t_loss_G', loss_G, prog_bar=True, on_step=True, on_epoch=True)
             return {'loss': loss_G}
 
-    # def training_epoch_end(self, outputs):
-    #     avg_loss_D = torch.stack([x['loss_D'] for x in outputs]).mean()
-    #     avg_loss_G = torch.stack([x['loss_G'] for x in outputs]).mean()
-
-    #     self.log('train_loss_D', avg_loss_D)
-    #     self.log('train_loss_G', avg_loss_G)
-
     def validation_step(self, batch, batch_idx):
         x, x_length, y, y_length = batch
         out, features_D = self(x, x_length, y, y_length)
@@ -159,12 +152,6 @@ class S2BModel(pl.LightningModule):
             
 
     def validation_epoch_end(self, outputs):
-        # avg_loss_D = torch.stack([x['val_loss_D'] for x in outputs]).mean()
-        # avg_loss_G = torch.stack([x['val_loss_G'] for x in outputs]).mean()
-
-        # self.log('valid_loss_D', avg_loss_D)
-        # self.log('valid_loss_G', avg_loss_G)
-        
         cur_lr = self.trainer.optimizers[0].param_groups[0]['lr']
 
         self.log('lr',cur_lr)
