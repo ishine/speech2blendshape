@@ -6,6 +6,7 @@ wandb/
 *.mov
 *.wav
 K-wav2vec/
+outputs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
