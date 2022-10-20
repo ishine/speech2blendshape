@@ -3,3 +3,5 @@ base_dir: /shared/air/shared/youngkim/mediazen
 data_dir: ${path.base_dir}/preprocessed/column16
 checkpoint_dir: ${path.base_dir}/ckpt
 pretrained: ${path.checkpoint_dir}/deepspeech_fc_finetune_expand_G_full_dataset-18:11:35:56/last.ckpt
+deepspeech: ${base_dir}/pretrained/librispeech_pretrained_v2.pth
+csv_out_dir: ${base_dir}/csv_out

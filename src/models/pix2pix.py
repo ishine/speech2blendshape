@@ -20,7 +20,7 @@ class Dis_block(nn.Module):
         return x
 
     
-class Discriminator(nn.Module):
+class PatchDisc(nn.Module):
     def __init__(self, in_channels=65):
         super().__init__()
 
