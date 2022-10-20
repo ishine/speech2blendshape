@@ -19,6 +19,27 @@ class Dis_block(nn.Module):
         x = self.block(x)
         return x
 
+
+class SimpleDisc(nn.Module):
+    def __init__(self, in_channels=1):
+        super().__init__()
+
+        self.stage_1 = Dis_block(in_channels, 8, normalize=False)
+        self.stage_2 = Dis_block(8, 16)
+        self.stage_3 = Dis_block(16, 32)
+        self.stage_4 = Dis_block(32, 64)
+
+        self.patch = nn.Conv2d(64, 1, 3, padding=1) # generate patchs along time axis
+
+    def forward(self, x):
+        x = self.stage_1(x)
+        x = self.stage_2(x)
+        x = self.stage_3(x)
+        x = self.stage_4(x)
+        x = self.patch(x)
+        x = torch.sigmoid(x)
+        return x
+
     
 class PatchDisc(nn.Module):
     def __init__(self, in_channels=65):
