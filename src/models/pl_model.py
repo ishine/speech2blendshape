@@ -161,8 +161,8 @@ class S2BModel(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
 
-        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.save_name}', PpujikPpujik.ssemssem)
-        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.save_name}/ggeoggleggeoggle', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.save_name}/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out, _ = self(x, x_length, y, y_length)
@@ -327,8 +327,8 @@ class GANFCGenSimpleDisc(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
 
-        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.hparams.save_name}', PpujikPpujik.ssemssem)
-        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.hparams.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.hparams.save_name}/ggeoggleggeoggle', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.hparams.save_name}/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out = self(x, x_length, y, y_length)
@@ -500,8 +500,8 @@ class GANCNNGenPatchDisc(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
 
-        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.save_name}', PpujikPpujik.ssemssem)
-        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.save_name}/ggeoggleggeoggle', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.save_name}/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out, _ = self(x, x_length, y, y_length)
@@ -606,8 +606,8 @@ class SimpleCNN(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
 
-        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.hparams.save_name}', PpujikPpujik.ssemssem)
-        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.hparams.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.hparams.save_name}/ggeoggleggeoggle', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.hparams.save_name}/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out, _ = self(x, x_length, y, y_length)
@@ -717,8 +717,8 @@ class SimpleFC(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
 
-        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.hparams.save_name}', PpujikPpujik.ssemssem)
-        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.hparams.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.hparams.save_name}/ggeoggleggeoggle', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.hparams.save_name}/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out = self(x, x_length, y, y_length)
