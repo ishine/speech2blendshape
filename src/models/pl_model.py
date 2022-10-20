@@ -10,6 +10,7 @@ from src.models.deepspeech import Jangnan
 from src.models.pix2pix import PatchDisc, GANLoss
 from src.models.generator import CNNGenerator, FCGenerator
 from src.models.full_deepspeech import DeepSpeech
+from src.utils import CosineAnnealingWarmUpRestarts
 
 
 
@@ -567,13 +568,14 @@ class SimpleFC(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
-        # scheduler = {
-        #     "scheduler": CosineAnnealingLR(optimizer, **{"T_0": 1, "T_mult": 2, "eta_min": 1e-07}),
-        #     "interval": "epoch",
-        # }
-        # return [optimizer], [scheduler]
-        return [optimizer]
+        # optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+        optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams.lr, momentum=0.9)
+        scheduler = {
+            "scheduler": CosineAnnealingWarmUpRestarts(optimizer, T_0=20, T_mult=1, eta_max=0.001, T_up=2, gamma=0.5),
+            "interval": "epoch",
+        }
+        return [optimizer], [scheduler]
+        # return [optimizer]
 
 
     def interpolate_features(self, features, f_len, b_len=None, input_rate=50, output_rate=60):

@@ -2,10 +2,10 @@
 
 defaults:
   - _self_
-  - datamodule: essentials.yaml
+  - datamodule: Face.yaml
   - model: S2BModel.yaml
   - path: cricket.yaml
-  - trainer: default.yaml
+  - trainer: NoGAN.yaml
 
 name: 'first_try'
 seed: 1234

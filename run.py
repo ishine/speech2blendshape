@@ -73,6 +73,8 @@ def main(cfg: DictConfig):
             )
 
     print(OmegaConf.to_yaml(cfg))
+    wandb_logger.log_hyperparams(dict(cfg))
+    wandb.run.log_code(cfg.path.code_dir)
     
     trainer.fit(model, dm)
     trainer.test(model, dm)
