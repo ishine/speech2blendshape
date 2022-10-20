@@ -7,7 +7,7 @@ import wandb
 
 from src.exporter import PpujikPpujik
 from src.models.deepspeech import Jangnan
-from src.models.pix2pix import PatchDisc, GANLoss
+from src.models.pix2pix import PatchDisc, GANLoss, SimpleDisc
 from src.models.generator import CNNGenerator, FCGenerator
 from src.models.full_deepspeech import DeepSpeech
 from src.utils import CosineAnnealingWarmUpRestarts
@@ -177,6 +177,172 @@ class S2BModel(pl.LightningModule):
         g_params = list(self.encoder.parameters()) + list(self.net_G.parameters())
         opt_g = torch.optim.Adam(g_params, lr=self.lr, betas=(0.5, 0.999))
         opt_d = torch.optim.Adam(self.net_D.parameters(), lr=self.lr, betas=(0.5, 0.999))
+        # scheduler = {
+        #     "scheduler": CosineAnnealingLR(optimizer, **{"T_0": 1, "T_mult": 2, "eta_min": 1e-07}),
+        #     "interval": "epoch",
+        # }
+        # return [optimizer], [scheduler]
+        return [opt_g, opt_d], []
+
+
+    def interpolate_features(self, features, f_len, b_len=None, input_rate=50, output_rate=60):
+        if b_len is not None:
+            batch_size = features.shape[0]
+            num_features = features.shape[1]
+            output_features = torch.zeros((batch_size, num_features, torch.max(b_len)), device=self.device)
+            for b in range(batch_size):
+                interp = nn.functional.interpolate(
+                    features[b:b+1,:,:f_len[b]],
+                    b_len[b],
+                    mode='linear',
+                    align_corners=True
+                    )
+                output_features[b:b+1,:,:b_len[b]] = interp
+            return output_features
+        else:
+            output_len = torch.ceil(f_len / input_rate * output_rate).to(torch.int32)
+            output_features = nn.functional.interpolate(features, torch.max(output_len))
+            return output_features
+
+
+class GANFCGenSimpleDisc(pl.LightningModule):
+    def __init__(self,
+                 csv_out_dir,
+                 lr,
+                 deepspeech_model_path,
+                 fc1_dim,
+                 fc2_dim,
+                 num_classes,
+                 lambda_G = 100,
+                 save_name = 'baseline'
+                 ):
+        super().__init__()
+        self.save_hyperparameters()
+        
+        self.encoder = DeepSpeech.load_model(deepspeech_model_path)
+        self.speech_fc = nn.Linear(29, self.hparams.num_classes)
+
+        self.net_G = FCGenerator(fc1_dim, fc2_dim)
+        self.criterion_MSE = nn.MSELoss(reduction='sum')
+
+        self.net_D = SimpleDisc(in_channels=1)
+        self.criterion_GAN = GANLoss()
+
+
+    def forward(self, x, x_length, y, y_length):
+        enc_out, x_length = self.encoder(x, x_length)
+        enc_out = enc_out.permute(1, 2, 0).contiguous()
+        speech_features = self.interpolate_features(enc_out, x_length, y_length) # B, C, T
+        speech_features = speech_features.permute(0, 2, 1).contiguous() # B, T, C
+
+        # net_G
+        pred_blendshape = self.net_G(speech_features) # B, T, num_classes
+
+        return pred_blendshape
+
+
+    def masking_preds(self, out, y, y_length):
+        ones_list = [torch.ones(length, self.hparams.num_classes) for length in y_length]
+        length_mask = torch.nn.utils.rnn.pad_sequence(ones_list, batch_first=True).to(self.device)
+
+        chopped_out = out[:, :max(y_length), :]
+        chopped_y = y[:, :max(y_length), :]
+        masked_out = chopped_out * length_mask
+
+        masked_out = masked_out.unsqueeze(1)
+        chopped_y = chopped_y.unsqueeze(1)
+
+        return masked_out, chopped_y # B, 1, T, num_classes
+
+
+    def forward_D(self, masked_out, chopped_y, y_length):
+        # Fake; stop backprop to the generator by detaching fake
+        fake = masked_out
+        pred_fake = self.net_D(fake.detach())
+        loss_D_fake = self.criterion_GAN(pred_fake, False, y_length)
+        # Real
+        real = chopped_y
+        pred_real = self.net_D(real)
+        loss_D_real = self.criterion_GAN(pred_real, True, y_length)
+        # Combine loss and calculate gradients
+        loss_D = (loss_D_fake + loss_D_real) * 0.5
+
+        return loss_D_fake, loss_D_real, loss_D
+
+    def forward_G(self, masked_out, chopped_y, y_length):
+        # First, G(x) should fake the discriminator
+        fake = masked_out
+        pred_fake = self.net_D(fake)
+        loss_G_GAN = self.criterion_GAN(pred_fake, True, y_length)
+        # Second, G(x) = masked_out
+        loss_G_MSE = self.criterion_MSE(masked_out, chopped_y)
+        element_num = torch.sum(y_length) * self.hparams.num_classes
+        loss_G_MSE = loss_G_MSE / element_num
+        loss_G = loss_G_GAN + (self.hparams.lambda_G * loss_G_MSE)
+        return loss_G_GAN, loss_G_MSE, loss_G
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        x, x_length, y, y_length = batch
+        out = self(x, x_length, y, y_length)
+
+        masked_out, chopped_y = self.masking_preds(out, y, y_length)
+
+        # train net_D
+        if optimizer_idx == 1:
+            loss_D_fake, loss_D_real, loss_D = self.forward_D(masked_out, chopped_y, y_length)
+            self.log('t_loss_D', loss_D, prog_bar=True, on_step=True, on_epoch=True)
+            return {'loss': loss_D}
+
+        # train generator
+        elif optimizer_idx == 0:
+            loss_G_GAN, loss_G_MSE, loss_G = self.forward_G(masked_out, chopped_y, y_length)
+            self.log('t_loss_G', loss_G, prog_bar=True, on_step=True, on_epoch=True)
+            return {'loss': loss_G}
+
+    def validation_step(self, batch, batch_idx):
+        x, x_length, y, y_length = batch
+        out = self(x, x_length, y, y_length)
+
+        masked_out, chopped_y = self.masking_preds(out, y, y_length)
+
+        # net_D
+        loss_D_fake, loss_D_real, loss_D = self.forward_D(masked_out, chopped_y, y_length)
+        self.log('v_loss_D_fake', loss_D_fake, on_step=True, on_epoch=True)
+        self.log('v_loss_D_real', loss_D_real, on_step=True, on_epoch=True)
+        self.log('v_loss_D', loss_D, prog_bar=True, on_step=True, on_epoch=True)
+
+        # net_G
+        loss_G_GAN, loss_G_MSE, loss_G = self.forward_G(masked_out, chopped_y, y_length)
+        self.log('v_loss_G_GAN', loss_G_GAN, on_step=True, on_epoch=True)
+        self.log('v_loss_G_MSE', loss_G_MSE, prog_bar=True, on_step=True, on_epoch=True)
+        self.log('v_loss_G', loss_G, prog_bar=True, on_step=True, on_epoch=True)
+        
+        # return {'loss_D': loss_D, 'loss_G': loss_G}
+            
+
+    def validation_epoch_end(self, outputs):
+        cur_lr = self.trainer.optimizers[0].param_groups[0]['lr']
+
+        self.log('lr',cur_lr)
+    
+    def test_step(self, batch, batch_idx):
+
+        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/ggeoggleggeoggle/{self.hparams.save_name}', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/banjilbanjil/{self.hparams.save_name}', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+
+        x, x_length, y, y_length, indices, timecodes, f_names = batch
+        out = self(x, x_length, y, y_length)
+
+        y_length, timecodes, out = y_length.cpu(), timecodes.cpu(), out.cpu()
+
+        self.jururuk.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.ppujikppujik.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
+
+
+    def configure_optimizers(self):
+        g_params = list(self.encoder.parameters()) + list(self.net_G.parameters())
+        opt_g = torch.optim.AdamW(g_params, lr=self.hparams.lr, betas=(0.5, 0.999))
+        opt_d = torch.optim.AdamW(self.net_D.parameters(), lr=self.hparams.lr, betas=(0.5, 0.999))
         # scheduler = {
         #     "scheduler": CosineAnnealingLR(optimizer, **{"T_0": 1, "T_mult": 2, "eta_min": 1e-07}),
         #     "interval": "epoch",
