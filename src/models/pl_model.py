@@ -733,9 +733,9 @@ class SimpleFC(pl.LightningModule):
 
     def configure_optimizers(self):
         # optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams.lr, momentum=0.9)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr)
         scheduler = {
-            "scheduler": CosineAnnealingWarmUpRestarts(optimizer, T_0=20, T_mult=1, eta_max=0.001, T_up=2, gamma=0.5),
+            "scheduler": CosineAnnealingWarmUpRestarts(optimizer, T_0=20, T_mult=1, eta_max=0.0005, T_up=2, gamma=0.5),
             "interval": "epoch",
         }
         return [optimizer], [scheduler]
