@@ -82,7 +82,7 @@ class MaskConv(nn.Module):
             x = module(x)
             mask = torch.BoolTensor(x.size()).fill_(0)
             if x.is_cuda:
-                mask = mask.cuda()
+                mask = mask.to(x.device)
             for i, length in enumerate(lengths):
                 length = length.item()
                 if (mask[i].size(2) - length) > 0:
@@ -204,7 +204,7 @@ class DeepSpeech(nn.Module):
         )
         self.inference_softmax = InferenceBatchSoftmax()
 
-    def forward(self, x, lengths, return_rnn_out=False):
+    def forward(self, x, lengths, return_rnn_out=False, return_both=False):
         with torch.no_grad():
             lengths = lengths.cpu().int()
             output_lengths = self.get_seq_lens(lengths)
@@ -222,6 +222,9 @@ class DeepSpeech(nn.Module):
             if return_rnn_out:
                 return x, output_lengths
 
+            if return_both:
+                rnn_out = x.clone().detach()
+
             if not self.bidirectional:  # no need for lookahead layer in bidirectional
                 x = self.lookahead(x)
 
@@ -229,6 +232,10 @@ class DeepSpeech(nn.Module):
         # x = x.transpose(0, 1)
         # identity in training mode, softmax in eval mode
         # x = self.inference_softmax(x)
+
+        if return_both:
+            return x, rnn_out, output_lengths
+
         return x, output_lengths
 
     def get_seq_lens(self, input_length):
