@@ -582,7 +582,7 @@ class GANCNNGenPatchDiscFeatureCNN(pl.LightningModule):
         pred_blendshape = self.net_G(speech_features) # B, T, num_classes
 
         # speech feature for net_D
-        feature_D = self.speech_cnn(rnn_out_intp) # B, 64, 16, T
+        feature_D = self.speech_cnn(rnn_out_intp, y_length) # B, 64, 16, T
         feature_D = feature_D.permute(0, 1, 3, 2).contiguous() # B, 64, T, 16
 
         return pred_blendshape, feature_D
@@ -749,19 +749,19 @@ class GANFCGenPatchDiscFeatureCNN(pl.LightningModule):
         
         rnn_out = rnn_out.permute(1, 2, 0).contiguous()
         rnn_out_intp = self.interpolate_features(rnn_out, x_length, y_length)
-        rnn_out_intp = rnn_out_intp.unsqeeze(1)
+        rnn_out_intp = rnn_out_intp.unsqueeze(1)
 
         # net_G
         pred_blendshape = self.net_G(speech_features) # B, T, num_classes
 
         # speech feature for net_D
-        feature_D = self.speech_cnn(rnn_out_intp) # B, 64, 16, T
+        feature_D = self.speech_cnn(rnn_out_intp, y_length) # B, 64, 16, T
         feature_D = feature_D.permute(0, 1, 3, 2).contiguous() # B, 64, T, 16
 
         return pred_blendshape, feature_D
 
     def masking_preds(self, out, y, y_length):
-        ones_list = [torch.ones(length, self.num_classes) for length in y_length]
+        ones_list = [torch.ones(length, self.hparams.num_classes) for length in y_length]
         length_mask = torch.nn.utils.rnn.pad_sequence(ones_list, batch_first=True).to(self.device)
 
         chopped_out = out[:, :max(y_length), :]

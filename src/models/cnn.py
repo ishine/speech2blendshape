@@ -83,4 +83,4 @@ class ResNet(nn.Module):
         return out
 
 def resnet34():
-    return ResNet(BasicBlock, [3, 3, 9, 3])
+    return ResNet(BasicBlock, [1,1,1,1])

@@ -1,6 +1,6 @@
 # early stopping
 es_monitor: v_loss_G_MSE
-es_patience: 30
+es_patience: 200
 
 # checkpoint
 save_top_k: 2
