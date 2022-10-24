@@ -23,20 +23,5 @@ blendshape_columns: [
   'CheekPuff'
 ]
 speakers: [
-#   'AanSeoHue', # C
-#   'AnnSeoHue', # C
-  # 'LeeYooHonew', # A
-#   'LeeYuJin', # B
-#   'Ohongsuck', # C
-#   'SeoHeeJoo', # C
-#   'Suljuhwan', # B
-#   'bbs', # B 
-#   'hbinew', # C 
-  # 'hynew', # A
-  'jiha', # A
-#   'kmg', # B
-#   'kye', # B
-#   'lcy', # C
-  # 'mjki', # A
-#   'ohongsuck' # C
+  'jiha' # A
 ]

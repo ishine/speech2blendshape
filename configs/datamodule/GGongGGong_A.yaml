@@ -25,18 +25,18 @@ blendshape_columns: [
 speakers: [
 #   'AanSeoHue', # C
 #   'AnnSeoHue', # C
-  # 'LeeYooHonew', # A
+  'LeeYooHonew', # A
 #   'LeeYuJin', # B
 #   'Ohongsuck', # C
 #   'SeoHeeJoo', # C
 #   'Suljuhwan', # B
 #   'bbs', # B 
 #   'hbinew', # C 
-  # 'hynew', # A
+  'hynew', # A
   'jiha', # A
 #   'kmg', # B
 #   'kye', # B
 #   'lcy', # C
-  # 'mjki', # A
+  'mjki', # A
 #   'ohongsuck' # C
 ]

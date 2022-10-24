@@ -35,7 +35,8 @@ def main(cfg: DictConfig):
     dm = hydra.utils.instantiate(cfg.datamodule)
     
     if cfg.resume:
-        model = S2BModel.load_from_checkpoint(cfg.path.pretrained)
+        model = hydra.utils.instantiate(cfg.model)
+        model = model.load_from_checkpoint(cfg.path.pretrained)
     else:
         model = hydra.utils.instantiate(cfg.model)
     

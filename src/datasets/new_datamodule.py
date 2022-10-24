@@ -5,6 +5,7 @@ import re
 import numpy as np
 import pytorch_lightning as pl
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import ShuffleSplit
 import torch
 from torch.utils.data import DataLoader, random_split
 
@@ -85,7 +86,7 @@ class FaceDataModule(pl.LightningDataModule):
 
 
 class GGongGGongDataModule(pl.LightningDataModule):
-    def __init__(self, base_dir, batch_size, num_workers, seed, blendshape_columns):
+    def __init__(self, base_dir, batch_size, num_workers, seed, blendshape_columns, speakers=None):
         super().__init__(GGongGGongDataModule)
 
         self.audio_blob_path = os.path.join(base_dir, 'preprocessed/ggongggong2/audio_ggongggong.pt')
@@ -95,6 +96,7 @@ class GGongGGongDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.seed = seed
         self.blendshape_columns = blendshape_columns
+        self.speakers = speakers
 
     
     def prepare_data(self):
@@ -106,13 +108,13 @@ class GGongGGongDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         
         sentence_nums = [re.sub(r'[^0-9]', '', d.split('_')[2]) for d in self.f_names]
-        # speaker_names = [re.sub(r'[0-9]+', '', d.split('_')[2]) for d in self.f_names]
+        speaker_names = [re.sub(r'[0-9]+', '', d.split('_')[2]) for d in self.f_names]
 
         test_sentences = [5, 11, 18, 147, 183]
-        train_valid_data_names = [d for i, d in enumerate(self.f_names) if int(sentence_nums[i]) not in test_sentences]
+        train_valid_data_names = [d for i, d in enumerate(self.f_names) if int(sentence_nums[i]) not in test_sentences if speaker_names[i] in self.speakers]
         test_data_names = [d for i, d in enumerate(self.f_names) if int(sentence_nums[i]) in test_sentences]
 
-        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=1234)
+        sss = ShuffleSplit(n_splits=1, test_size=0.1, random_state=1234)
         indices = list(range(len(train_valid_data_names)))
         train_valid_sentence_nums = [re.sub(r'[^0-9]', '', os.path.basename(d).split('_')[2]) for d in train_valid_data_names]
         train_index, valid_index = next(iter(sss.split(indices, train_valid_sentence_nums)))

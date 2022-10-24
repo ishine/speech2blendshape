@@ -331,8 +331,11 @@ class GANFCGenSimpleDisc(pl.LightningModule):
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out = self(x, x_length, y, y_length)
 
-        y_length, timecodes, out = y_length.cpu(), timecodes.cpu(), out.cpu()
+        chopped_out = out[:, :max(y_length), :]
+        chopped_timecodes = timecodes[:, :max(y_length)]
 
+        y_length, timecodes, out = y_length.cpu(), chopped_timecodes.cpu(), chopped_out.cpu()
+        
         self.jururuk.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
         self.ppujikppujik.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
 
@@ -504,7 +507,10 @@ class GANCNNGenPatchDisc(pl.LightningModule):
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out, _ = self(x, x_length, y, y_length)
 
-        y_length, timecodes, out = y_length.cpu(), timecodes.cpu(), out.cpu()
+        chopped_out = out[:, :max(y_length), :]
+        chopped_timecodes = timecodes[:, :max(y_length)]
+
+        y_length, timecodes, out = y_length.cpu(), chopped_timecodes.cpu(), chopped_out.cpu()
 
         self.jururuk.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
         self.ppujikppujik.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
@@ -550,7 +556,7 @@ class SimpleCNN(pl.LightningModule):
         self.save_hyperparameters()
 
         self.encoder = DeepSpeech.load_model(deepspeech_model_path)
-        self.net_G = CNNGenerator(frame_window=16, attention_window=8, num_classes=self.num_classes)
+        self.net_G = CNNGenerator(frame_window=16, attention_window=8, num_classes=num_classes)
         self.criterion_MSE = nn.MSELoss(reduction='sum')
     
     def forward(self, x, x_length, y, y_length):
@@ -610,7 +616,10 @@ class SimpleCNN(pl.LightningModule):
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out, _ = self(x, x_length, y, y_length)
 
-        y_length, timecodes, out = y_length.cpu(), timecodes.cpu(), out.cpu()
+        chopped_out = out[:, :max(y_length), :]
+        chopped_timecodes = timecodes[:, :max(y_length)]
+
+        y_length, timecodes, out = y_length.cpu(), chopped_timecodes.cpu(), chopped_out.cpu()
 
         self.jururuk.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
         self.ppujikppujik.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
@@ -720,7 +729,6 @@ class SimpleFC(pl.LightningModule):
 
         x, x_length, y, y_length, indices, timecodes, f_names = batch
         out = self(x, x_length, y, y_length)
-        print(out.shape)
 
         chopped_out = out[:, :max(y_length), :]
         chopped_timecodes = timecodes[:, :max(y_length)]
@@ -732,14 +740,14 @@ class SimpleFC(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        # optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr)
-        scheduler = {
-            "scheduler": CosineAnnealingWarmUpRestarts(optimizer, T_0=20, T_mult=1, eta_max=0.0005, T_up=2, gamma=0.5),
-            "interval": "epoch",
-        }
-        return [optimizer], [scheduler]
-        # return [optimizer]
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+        # optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr)
+        # scheduler = {
+        #     "scheduler": CosineAnnealingWarmUpRestarts(optimizer, T_0=20, T_mult=1, eta_max=0.0005, T_up=2, gamma=0.5),
+        #     "interval": "epoch",
+        # }
+        # return [optimizer], [scheduler]
+        return [optimizer]
 
 
     def interpolate_features(self, features, f_len, b_len=None, input_rate=50, output_rate=60):

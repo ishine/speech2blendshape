@@ -22,7 +22,8 @@ def main(cfg: DictConfig):
     pl.seed_everything(cfg.seed)
 
     dm = hydra.utils.instantiate(cfg.datamodule)
-    model = S2BModel.load_from_checkpoint(cfg.path.pretrained)
+    model = hydra.utils.instantiate(cfg.model)
+    model = model.load_from_checkpoint(cfg.path.pretrained)
     
     if cfg.debug:
         trainer = pl.Trainer(
