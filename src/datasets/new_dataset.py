@@ -1,6 +1,8 @@
 import os
 import torch
 from torch.nn.utils.rnn import pad_sequence
+import torchaudio
+
 
 class FaceDataset(torch.utils.data.Dataset):
     def __init__(self, data_paths, stage):
@@ -66,3 +68,20 @@ class GGongGGongDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         return self.data[idx]
+
+
+class WavDataset(torch.utils.data.Dataset):
+    def __init__(self, data, wav_dir):
+        self.data = data
+        self.wav_dir = wav_dir
+        self.len = len(self.data)
+    
+    def __len__(self):
+        return self.len
+
+
+    def __getitem__(self, idx):
+        f_name = self.data[idx][2]
+        audio_tensor, sample_rate = torchaudio.load(os.path.join(self.wav_dir, f'{f_name}.wav'))
+
+        return audio_tensor, *self.data[idx]
