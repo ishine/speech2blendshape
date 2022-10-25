@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-import argparse
 import torch
 import wandb
 import pytorch_lightning as pl
@@ -11,7 +10,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from src.datasets.new_datamodule import FaceDataModule
-from src.models.pl_model import S2BModel
 
 import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')

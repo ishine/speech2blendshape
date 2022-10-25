@@ -958,7 +958,7 @@ class SimpleCNN(pl.LightningModule):
         self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/{self.hparams.save_name}/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
 
         x, x_length, y, y_length, indices, timecodes, f_names = batch
-        out, _ = self(x, x_length, y, y_length)
+        out = self(x, x_length, y, y_length)
 
         chopped_out = out[:, :max(y_length), :]
         chopped_timecodes = timecodes[:, :max(y_length)]
