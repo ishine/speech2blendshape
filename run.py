@@ -16,6 +16,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 
 
 @hydra.main(version_base='1.1', config_path="configs/", config_name="config.yaml")
+# @hydra.main(config_path="configs/", config_name="config.yaml")
 def main(cfg: DictConfig):
     pl.seed_everything(cfg.seed)
 

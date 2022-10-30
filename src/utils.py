@@ -1,3 +1,8 @@
+import os, multiprocessing.pool
+import ffmpeg, torchaudio
+import pandas as pd
+import numpy as np
+import torch, librosa
 import math
 import matplotlib.pyplot as plt
 import librosa
@@ -84,3 +89,28 @@ class CosineAnnealingWarmUpRestarts(_LRScheduler):
         self.last_epoch = math.floor(epoch)
         for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
             param_group['lr'] = lr
+
+
+
+def audio_preprocessing(wav):
+    HERTZ = 50
+    audio_tensor, sample_rate = torchaudio.load(wav)
+    squeezed_audio_tensor = audio_tensor.squeeze()
+    squeezed_audio_ndarray = squeezed_audio_tensor.numpy()
+
+    n_fft = int(sample_rate / HERTZ)
+    hop_length = int(sample_rate / (HERTZ * 2))
+    D = librosa.stft(squeezed_audio_ndarray, 
+                        n_fft=n_fft, 
+                        win_length=n_fft, 
+                        hop_length=hop_length, 
+                        window='hamming')
+    spectrogram, phase = librosa.magphase(D)
+
+    # S = log(S+1)
+    log_spectrogram = np.log1p(spectrogram)
+    mean, stdev = log_spectrogram.mean(), log_spectrogram.std()
+    normalized_spectrogram = (log_spectrogram - mean) / stdev
+    normalized_spectrogram_tensor = torch.FloatTensor(normalized_spectrogram)
+
+    return normalized_spectrogram_tensor.T

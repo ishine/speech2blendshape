@@ -84,6 +84,32 @@ class FaceDataModule(pl.LightningDataModule):
             pin_memory=True)
 
 
+class InferDataModule(pl.LightningDataModule):
+    def __init__(self, data_path, num_workers, seed, blendshape_columns):
+        super().__init__(FaceDataModule)
+        self.data_path = data_path
+        self.num_workers = num_workers
+        self.seed = seed
+        self.blendshape_columns = blendshape_columns
+
+    
+    def prepare_data(self):
+        if not os.path.exists(self.data_path):
+            print(f"No Data in {self.data_path}")
+        
+        
+    def setup(self, stage=None):
+        self.test_dataset = FaceDataset(self.data_path, stage)
+
+
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_dataset, 
+            batch_size=1, 
+            num_workers=self.num_workers, 
+            pin_memory=True)
+
+
 
 class GGongGGongDataModule(pl.LightningDataModule):
     def __init__(self, base_dir, batch_size, num_workers, seed, blendshape_columns, speakers=None):
@@ -156,6 +182,7 @@ class WavDataModule(pl.LightningDataModule):
     def __init__(self, base_dir, batch_size, num_workers, seed, blendshape_columns, speakers=None):
         super().__init__(WavDataModule)
 
+        self.wav_blob_path = os.path.join(base_dir, 'preprocessed/ggongggong2/w2v2_960h_base_ggongggong.pt')
         self.shape_blob_path = os.path.join(base_dir, 'preprocessed/ggongggong2/shape_ggongggong.pt')
         self.wav_dir = os.path.join(base_dir, 'preprocessed/wav')
 
@@ -167,9 +194,10 @@ class WavDataModule(pl.LightningDataModule):
 
     
     def prepare_data(self):
+        self.indices, self.audio_data, self.audio_lengths = torch.load(self.wav_blob_path)
         self.timecodes, self.blendshape_count, blendshape_columns, self.shape_data, self.shape_lengths, self.f_names = torch.load(self.shape_blob_path)
         assert self.blendshape_columns == blendshape_columns
-        self.data = list(zip(self.shape_data, self.shape_lengths, self.f_names, self.timecodes))
+        self.data = list(zip(self.audio_data, self.audio_lengths, self.shape_data, self.shape_lengths, self.indices, self.timecodes, self.f_names))
 
     def setup(self, stage=None):
         
@@ -190,15 +218,19 @@ class WavDataModule(pl.LightningDataModule):
         train_data_names = train_valid_data_names[train_index]
         valid_data_names = train_valid_data_names[valid_index]
 
-        train_data = [xx[:3] for xx in self.data if xx[2] in train_data_names]
-        valid_data = [xx[:3] for xx in self.data if xx[2] in valid_data_names]
-        test_data = [xx for xx in self.data if xx[2] in test_data_names]
+        train_file_indices = [int(d.split('_')[0]) for d in train_data_names]
+        valid_file_indices = [int(d.split('_')[0]) for d in valid_data_names]
+        test_file_indices = [int(d.split('_')[0]) for d in test_data_names]
+
+        train_data = [xx[:4] for xx in self.data if xx[4].item() in train_file_indices]
+        valid_data = [xx[:4] for xx in self.data if xx[4].item() in valid_file_indices]
+        test_data = [xx for xx in self.data if xx[4].item() in test_file_indices]
 
         if stage in (None, 'fit'):
-            self.train_dataset = WavDataset(train_data, self.wav_dir)
-            self.valid_dataset = WavDataset(valid_data, self.wav_dir)
+            self.train_dataset = WavDataset(train_data)
+            self.valid_dataset = WavDataset(valid_data)
         if stage in (None, 'test'):
-            self.test_dataset = WavDataset(test_data, self.wav_dir)        
+            self.test_dataset = WavDataset(test_data)        
     
 
     def train_dataloader(self):

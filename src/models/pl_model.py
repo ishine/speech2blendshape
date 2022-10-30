@@ -14,7 +14,6 @@ from src.models.cnn import resnet34
 from src.utils import CosineAnnealingWarmUpRestarts
 
 
-
 class S2BModel(pl.LightningModule):
     def __init__(self,
                  lr,
@@ -1081,6 +1080,19 @@ class SimpleFC(pl.LightningModule):
 
         self.jururuk.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
         self.ppujikppujik.batch_save_to_csvs(y_length, f_names, timecodes, self.trainer.datamodule.blendshape_columns, out)
+
+    def predict_step(self, batch, batch_idx):
+        x, x_length, f_name = batch
+        out = self(x, x_length, None, None)
+        out = out.cpu()
+        timecodes = range(10000000000, 10000000000+x_length[0])
+
+        self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/{f_name}/ggeoggleggeoggle', PpujikPpujik.ssemssem)
+        self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/{f_name}/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
+        
+        self.jururuk.save_to_csv_predict(f_name, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.ppujikppujik.save_to_csv_predict(f_name, timecodes, self.trainer.datamodule.blendshape_columns, out)
+
 
 
     def configure_optimizers(self):

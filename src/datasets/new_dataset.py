@@ -3,6 +3,8 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 import torchaudio
 
+from src.utils import audio_preprocessing
+
 
 class FaceDataset(torch.utils.data.Dataset):
     def __init__(self, data_paths, stage):
@@ -55,6 +57,20 @@ class FaceDataset(torch.utils.data.Dataset):
 
         return ret
 
+class InferDataset(torch.utils.data.Dataset):
+    def __init__(self, data_path):
+        self.data_path = data_path
+        self.file_name = os.path.basename(self.data_path)
+    
+    def __len__(self):
+        return 1
+
+    def __getitem__(self, idx):
+        spectrogram = audio_preprocessing(self.data_path)
+        spec_length = len(spectrogram)
+        
+        return spectrogram, spec_length, self.file_name
+
 
 class GGongGGongDataset(torch.utils.data.Dataset):
     def __init__(self, data):
@@ -71,17 +87,14 @@ class GGongGGongDataset(torch.utils.data.Dataset):
 
 
 class WavDataset(torch.utils.data.Dataset):
-    def __init__(self, data, wav_dir):
+    def __init__(self, data):
         self.data = data
-        self.wav_dir = wav_dir
         self.len = len(self.data)
+
     
     def __len__(self):
         return self.len
 
 
     def __getitem__(self, idx):
-        f_name = self.data[idx][2]
-        audio_tensor, sample_rate = torchaudio.load(os.path.join(self.wav_dir, f'{f_name}.wav'))
-
-        return audio_tensor, *self.data[idx]
+        return self.data[idx]

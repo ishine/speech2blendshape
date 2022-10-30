@@ -116,7 +116,6 @@ class Preprocessor:
         if self.threads > 1:
             with multiprocessing.pool.Pool(processes=self.threads) as pool:
                 self.data = pool.starmap(self.sample_dispatcher, zip(self.recording_directories, range(len(self.recording_directories))))
-            self.
 
         elif self.threads == 1:
             for recording_directory, count in zip(self.recording_directories, range(len(self.recording_directories))):
