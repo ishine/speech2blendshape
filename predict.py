@@ -40,6 +40,7 @@ def main(cfg: DictConfig):
             logger=False
             )
 
+    model.hparams.csv_out_dir = cfg.model.csv_out_dir
     print(OmegaConf.to_yaml(cfg))
     trainer.predict(model, dm)
 
