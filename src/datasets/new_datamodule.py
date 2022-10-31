@@ -9,7 +9,7 @@ from sklearn.model_selection import ShuffleSplit
 import torch
 from torch.utils.data import DataLoader, random_split
 
-from src.datasets.new_dataset import FaceDataset, GGongGGongDataset, WavDataset
+from src.datasets.new_dataset import FaceDataset, GGongGGongDataset, WavDataset, PredictDataset
 
 
 class FaceDataModule(pl.LightningDataModule):
@@ -84,9 +84,9 @@ class FaceDataModule(pl.LightningDataModule):
             pin_memory=True)
 
 
-class InferDataModule(pl.LightningDataModule):
+class PredictDataModule(pl.LightningDataModule):
     def __init__(self, data_path, num_workers, seed, blendshape_columns):
-        super().__init__(FaceDataModule)
+        super().__init__(PredictDataModule)
         self.data_path = data_path
         self.num_workers = num_workers
         self.seed = seed
@@ -99,16 +99,15 @@ class InferDataModule(pl.LightningDataModule):
         
         
     def setup(self, stage=None):
-        self.test_dataset = FaceDataset(self.data_path, stage)
+        self.test_dataset = PredictDataset(self.data_path)
 
 
-    def test_dataloader(self):
+    def predict_dataloader(self):
         return DataLoader(
             self.test_dataset, 
             batch_size=1, 
             num_workers=self.num_workers, 
             pin_memory=True)
-
 
 
 class GGongGGongDataModule(pl.LightningDataModule):
@@ -173,6 +172,33 @@ class GGongGGongDataModule(pl.LightningDataModule):
         return DataLoader(self.valid_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=False)
 
 
+    def test_dataloader(self):
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=False)
+
+
+
+class TestGGongGGongDataModule(pl.LightningDataModule):
+    def __init__(self, base_dir, batch_size, num_workers, seed, blendshape_columns):
+        super().__init__(TestGGongGGongDataModule)
+
+        self.audio_blob_path = os.path.join(base_dir, 'preprocessed/test/ggongggong/audio_ggongggong.pt')
+        self.shape_blob_path = os.path.join(base_dir, 'preprocessed/test/ggongggong/shape_ggongggong.pt')
+
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.seed = seed
+        self.blendshape_columns = blendshape_columns
+    
+    def prepare_data(self):
+        self.sample_rate, self.indices, self.audio_data, self.audio_lengths = torch.load(self.audio_blob_path)
+        self.timecodes, self.blendshape_count, blendshape_columns, self.shape_data, self.shape_lengths, self.f_names = torch.load(self.shape_blob_path)
+        assert self.blendshape_columns == blendshape_columns
+        self.data = list(zip(self.audio_data, self.audio_lengths, self.shape_data, self.shape_lengths, self.indices, self.timecodes, self.f_names))
+
+    def setup(self, stage=None):
+        if stage in (None, 'test'):
+            self.test_dataset = GGongGGongDataset(self.data)        
+    
     def test_dataloader(self):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=False)
 

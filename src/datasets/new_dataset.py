@@ -57,7 +57,7 @@ class FaceDataset(torch.utils.data.Dataset):
 
         return ret
 
-class InferDataset(torch.utils.data.Dataset):
+class PredictDataset(torch.utils.data.Dataset):
     def __init__(self, data_path):
         self.data_path = data_path
         self.file_name = os.path.basename(self.data_path)

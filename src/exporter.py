@@ -30,8 +30,11 @@ class PpujikPpujik:
         if not os.path.exists(self.target_dir):
             os.makedirs(self.target_dir)
 
-    def save_to_csv_predict(self, f_name, timecode, column, prediction):
-        recovered_timecode =  [f'{(s := str(time.item()))[:-9]}:{s[-9:-7]}:{s[-7:-5]}:{s[-5:-3]}.{s[-3:]}' for time in timecode]
+    def save_to_csv_predict(self, f_name, column, prediction):
+        prediction = prediction[0]
+        length = prediction.shape[0]
+        timecode = [[i//60//60, i//60%60, i%60] for i in range(length)]
+        recovered_timecode = [f'00:{m:02}:{s:02}:{ms:02}.000' for m, s, ms in timecode]
         timecode_index = pd.Index(recovered_timecode, name='Timecode')
 
         blendshape_count = np.expand_dims(np.full(len(timecode), len(column)), axis=1)

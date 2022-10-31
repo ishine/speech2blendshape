@@ -1,3 +1,4 @@
+import os
 import torch
 import pytorch_lightning as pl
 import torch.nn as nn
@@ -1083,15 +1084,15 @@ class SimpleFC(pl.LightningModule):
 
     def predict_step(self, batch, batch_idx):
         x, x_length, f_name = batch
+        f_name = f_name[0][:-4]
         out = self(x, x_length, None, None)
         out = out.cpu()
-        timecodes = range(10000000000, 10000000000+x_length[0])
 
         self.jururuk = PpujikPpujik(f'{self.hparams.csv_out_dir}/{f_name}/ggeoggleggeoggle', PpujikPpujik.ssemssem)
         self.ppujikppujik = PpujikPpujik(f'{self.hparams.csv_out_dir}/{f_name}/banjilbanjil', PpujikPpujik.ttukttakttukttak_migglemiggle(3,5))
         
-        self.jururuk.save_to_csv_predict(f_name, timecodes, self.trainer.datamodule.blendshape_columns, out)
-        self.ppujikppujik.save_to_csv_predict(f_name, timecodes, self.trainer.datamodule.blendshape_columns, out)
+        self.jururuk.save_to_csv_predict(f_name, self.trainer.datamodule.blendshape_columns, out)
+        self.ppujikppujik.save_to_csv_predict(f_name, self.trainer.datamodule.blendshape_columns, out)
 
 
 
@@ -1123,5 +1124,9 @@ class SimpleFC(pl.LightningModule):
             return output_features
         else:
             output_len = torch.ceil(f_len / input_rate * output_rate).to(torch.int32)
-            output_features = nn.functional.interpolate(features, torch.max(output_len))
+            output_features = nn.functional.interpolate(
+                features, 
+                torch.max(output_len),
+                mode='linear',
+                align_corners=True)
             return output_features

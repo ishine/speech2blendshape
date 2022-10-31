@@ -113,20 +113,20 @@ class Preprocessor:
         print(f'{pt_name}.pt saved.')
 
     def preprocess(self):
-        if self.threads > 1:
-            with multiprocessing.pool.Pool(processes=self.threads) as pool:
-                self.data = pool.starmap(self.sample_dispatcher, zip(self.recording_directories, range(len(self.recording_directories))))
+        # if self.threads > 1:
+        #     with multiprocessing.pool.Pool(processes=self.threads) as pool:
+        #         self.data = pool.starmap(self.sample_dispatcher, zip(self.recording_directories, range(len(self.recording_directories))))
 
-        elif self.threads == 1:
-            for recording_directory, count in zip(self.recording_directories, range(len(self.recording_directories))):
-                count += self.start_idx
-                print(f"Processing No.{count} - {os.path.basename(recording_directory)}")
-                count_with_name = f"{count}_{os.path.basename(recording_directory)}"
-                mov_path, source_shape = self.get_data(recording_directory)
-                wav_audio_path = self.save_audio(mov_path, count_with_name)
-                spec, sample_rate = self.audio_preprocessing(wav_audio_path)
-                blendshape = self.blendshape_preprocessing(source_shape)
-                self.save_essentials(spec, sample_rate, blendshape, count_with_name)
+        # elif self.threads == 1:
+        for recording_directory, count in zip(self.recording_directories, range(len(self.recording_directories))):
+            count += self.start_idx
+            print(f"Processing No.{count} - {os.path.basename(recording_directory)}")
+            count_with_name = f"{count}_{os.path.basename(recording_directory)}"
+            mov_path, source_shape = self.get_data(recording_directory)
+            wav_audio_path = self.save_audio(mov_path, count_with_name)
+            spec, sample_rate = self.audio_preprocessing(wav_audio_path)
+            blendshape = self.blendshape_preprocessing(source_shape)
+            self.save_essentials(spec, sample_rate, blendshape, count_with_name)
 
     def sample_dispatcher(self, recording_directory, count):
         count += self.start_idx
