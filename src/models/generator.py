@@ -23,7 +23,7 @@ class FCGenerator(nn.Module):
         self.num_classes = num_classes
 
         fully_connected = nn.Sequential(
-            nn.AdaptiveAvgPool1d(self.fc1_dim),
+            nn.AdaptiveAvgPool1d(self.fc1_dim), # -> 의미 없음
             nn.Linear(self.fc1_dim, self.fc2_dim, bias=True),
             nn.ReLU6(),
             nn.Dropout(0.2),
@@ -37,6 +37,82 @@ class FCGenerator(nn.Module):
 
     def forward(self, x):
         return self.generator(x)
+
+
+class FCAttentionGenerator(nn.Module):
+    def __init__(
+            self, 
+            fc1_dim, 
+            fc2_dim, 
+            attention_window=8,
+            num_classes=16
+        ):
+        super(FCAttentionGenerator, self).__init__()
+
+        self.fc1_dim = fc1_dim
+        self.fc2_dim = fc2_dim
+        self.num_classes = num_classes
+        self.attention_window = attention_window
+
+        self.fully_connected = nn.Sequential(
+            nn.AdaptiveAvgPool1d(self.fc1_dim), # -> 의미 없음
+            nn.Linear(self.fc1_dim, self.fc2_dim, bias=False),
+            nn.LayerNorm(self.fc2_dim),
+            nn.GELU(),
+            nn.Dropout(0.2),
+            nn.Linear(self.fc2_dim, 64, bias=False),
+            nn.LayerNorm(64),
+            nn.GELU(),
+        )
+        self.attention_conv = nn.Sequential( # b x subspace_dim x seq_len
+            nn.Conv1d(64, 32, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.GELU(),
+            nn.Conv1d(32, 16, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.GELU(),
+            nn.Conv1d(16, 8, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.GELU(),
+            nn.Conv1d(8, 4, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.GELU(),
+            nn.Conv1d(4, 1, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.GELU()
+        )
+        self.attention = nn.Sequential(
+            nn.Linear(8, 8, bias=True),   
+            nn.Softmax(dim=1)
+            )
+        self.final_layer = nn.Sequential(
+            nn.Linear(64, self.num_classes),
+            ClipModule(min_threshold=0, max_threshold=1)
+        )
+        
+
+    def forward(self, x):
+        fc_out = self.fully_connected(x)
+        windowed_fc_out = self.attention_windowing(fc_out)
+        B, T, C, W = windowed_fc_out.shape
+        windowed_fc_out = windowed_fc_out.view(B*T, C, W) # B*T, 64, 8
+        att_conv_out = self.attention_conv(windowed_fc_out) # B*T, 1, 8
+        att_out = self.attention(att_conv_out) # B*T, 1, W
+        att_out = att_out.permute(0, 2, 1) # B*T, W, 1
+        final_features = torch.bmm(windowed_fc_out, att_out) # B*T, C, 1
+        final_features = final_features.view(B, T, C)
+        out = self.final_layer(final_features)
+        return out
+
+
+    def attention_windowing(self, frame_fc_out):
+        B, T, C = frame_fc_out.shape
+        W = self.attention_window
+        frame_fc_out = frame_fc_out.permute(0, 2, 1)
+        padded_features = F.pad(frame_fc_out, (W//2-1, W//2))
+        padded_features.permute(0, 2, 1)
+        output_features = torch.zeros((B, T, C, W), device=frame_fc_out.device)
+
+        for seq in range(T):
+            windowed_features = padded_features[:,:,seq:seq+W].unsqueeze(1)
+            output_features[:,seq:seq+1,:,:] = windowed_features
+
+        return output_features
 
 
 class CNNGenerator(nn.Module):
@@ -59,10 +135,8 @@ class CNNGenerator(nn.Module):
         self.frame_fc = nn.Sequential(
             nn.Linear(in_features=64, out_features=128, bias=True),
             nn.LeakyReLU(0.02),
-
             nn.Linear(in_features=128, out_features=64, bias=True),
             nn.LeakyReLU(0.02),            
-
             nn.Linear(in_features=64, out_features=32, bias=True),          
             nn.Tanh()
             )
