@@ -1,8 +1,0 @@
-_target_: src.models.pl_model.SimpleCNN
-
-# params of model class __init__ function
-csv_out_dir: ${path.csv_out_dir}
-lr: 0.0001
-deepspeech_model_path: ${path.deepspeech}
-num_classes: 16
-save_name: ${name}
