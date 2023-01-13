@@ -1,9 +1,0 @@
-_target_: src.models.pl_wav_model.SimpleFC
-
-# params of model class __init__ function
-csv_out_dir: ${path.csv_out_dir}
-lr: 0.0001
-fc1_dim: 1024
-fc2_dim: 1024
-num_classes: 16
-save_name: ${name}
